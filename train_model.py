@@ -6,16 +6,14 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 import os
 import joblib
+import matplotlib.pyplot as plt
+from skimage import color
 
-# Check if the image is grayscale
-def is_grayscale(img):
-    return len(img.shape) == 2 or img.shape[2] == 1
-
-# Convert image to grayscale if not already
-def convert_to_grayscale(img):
-    if not is_grayscale(img):
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    return img
+# Function to convert an image to grayscale if it isn't already
+def ensure_grayscale(image):
+    if len(image.shape) == 3:  # If the image has 3 channels, it's not grayscale
+        return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return image
 
 # Load dataset (Cat vs. Dog)
 def load_images(folder):
@@ -33,12 +31,17 @@ def load_images(folder):
                 if img is None:
                     print(f"Failed to load image: {img_path}")
                 else:
-                    img = convert_to_grayscale(img)  # Ensure image is in grayscale
+                    img = ensure_grayscale(img)
                     img = cv2.resize(img, (64, 128))  # Resize to a standard size
                     print(f"Image shape: {img.shape}")  # Debugging line
                     images.append(img)
                     labels.append(label)
     return np.array(images), np.array(labels)
+
+images, labels = load_images('dataset')
+
+# Check if images are loaded correctly
+print(f"Loaded {len(images)} images with labels {len(labels)}")
 
 # Extract HOG features
 def extract_hog_features(images):
@@ -49,13 +52,6 @@ def extract_hog_features(images):
         hog_features.append(fd)
     return np.array(hog_features)
 
-# Load dataset
-images, labels = load_images('dataset')
-
-# Check if images are loaded correctly
-print(f"Loaded {len(images)} images with labels {len(labels)}")
-
-# Extract HOG features
 features = extract_hog_features(images)
 
 # Train/Test split
@@ -72,3 +68,16 @@ print(f"Accuracy: {accuracy * 100:.2f}%")
 
 # Save the trained model
 joblib.dump(clf, 'hog_svm_model.pkl')
+
+# Plot and save confusion matrix
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Cat', 'Dog'], yticklabels=['Cat', 'Dog'])
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.title('Confusion Matrix')
+plt.savefig('confusion_matrix.png')
+plt.show()
