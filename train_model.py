@@ -2,12 +2,13 @@ import cv2
 import numpy as np
 from skimage.feature import hog
 from sklearn.svm import LinearSVC
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
 from sklearn.model_selection import train_test_split
 import os
 import joblib
 import matplotlib.pyplot as plt
 from skimage import color
+import seaborn as sns
 
 # Function to convert an image to grayscale if it isn't already
 def ensure_grayscale(image):
@@ -64,15 +65,19 @@ clf.fit(X_train, y_train)
 # Evaluate the classifier
 y_pred = clf.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+
 print(f"Accuracy: {accuracy * 100:.2f}%")
+print(f"Precision: {precision:.2f}")
+print(f"Recall: {recall:.2f}")
+print(f"F1 Score: {f1:.2f}")
 
 # Save the trained model
 joblib.dump(clf, 'hog_svm_model.pkl')
 
 # Plot and save confusion matrix
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
-
 cm = confusion_matrix(y_test, y_pred)
 plt.figure(figsize=(8, 6))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Cat', 'Dog'], yticklabels=['Cat', 'Dog'])
