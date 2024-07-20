@@ -7,6 +7,16 @@ from sklearn.model_selection import train_test_split
 import os
 import joblib
 
+# Check if the image is grayscale
+def is_grayscale(img):
+    return len(img.shape) == 2 or img.shape[2] == 1
+
+# Convert image to grayscale if not already
+def convert_to_grayscale(img):
+    if not is_grayscale(img):
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return img
+
 # Load dataset (Cat vs. Dog)
 def load_images(folder):
     images = []
@@ -19,28 +29,33 @@ def load_images(folder):
             if ext.lower() in valid_extensions:
                 img_path = os.path.join(class_path, filename)
                 print(f"Processing file: {img_path}")
-                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+                img = cv2.imread(img_path)
                 if img is None:
                     print(f"Failed to load image: {img_path}")
                 else:
+                    img = convert_to_grayscale(img)  # Ensure image is in grayscale
                     img = cv2.resize(img, (64, 128))  # Resize to a standard size
+                    print(f"Image shape: {img.shape}")  # Debugging line
                     images.append(img)
                     labels.append(label)
     return np.array(images), np.array(labels)
 
+# Extract HOG features
+def extract_hog_features(images):
+    hog_features = []
+    for img in images:
+        print(f"Processing HOG for image with shape: {img.shape}")  # Debugging line
+        fd = hog(img, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualize=False, channel_axis=None)
+        hog_features.append(fd)
+    return np.array(hog_features)
+
+# Load dataset
 images, labels = load_images('dataset')
 
 # Check if images are loaded correctly
 print(f"Loaded {len(images)} images with labels {len(labels)}")
 
 # Extract HOG features
-def extract_hog_features(images):
-    hog_features = []
-    for img in images:
-        fd, _ = hog(img, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualize=False, multichannel=False)
-        hog_features.append(fd)
-    return np.array(hog_features)
-
 features = extract_hog_features(images)
 
 # Train/Test split
