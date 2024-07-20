@@ -7,8 +7,12 @@ from sklearn.model_selection import train_test_split
 import os
 import joblib
 import matplotlib.pyplot as plt
-from skimage import color
 import seaborn as sns
+from colorama import Fore, Style, init
+import time
+
+# Initialize colorama
+init()
 
 # Function to convert an image to grayscale if it isn't already
 def ensure_grayscale(image):
@@ -27,14 +31,14 @@ def load_images(folder):
             ext = os.path.splitext(filename)[1]
             if ext.lower() in valid_extensions:
                 img_path = os.path.join(class_path, filename)
-                print(f"Processing file: {img_path}")
+                print(f"{Fore.CYAN}Processing file: {img_path}{Style.RESET_ALL}")
                 img = cv2.imread(img_path)
                 if img is None:
-                    print(f"Failed to load image: {img_path}")
+                    print(f"{Fore.RED}Failed to load image: {img_path}{Style.RESET_ALL}")
                 else:
                     img = ensure_grayscale(img)
                     img = cv2.resize(img, (64, 128))  # Resize to a standard size
-                    print(f"Image shape: {img.shape}")  # Debugging line
+                    print(f"{Fore.CYAN}Image shape: {img.shape}{Style.RESET_ALL}")  # Debugging line
                     images.append(img)
                     labels.append(label)
     return np.array(images), np.array(labels)
@@ -42,15 +46,18 @@ def load_images(folder):
 images, labels = load_images('dataset')
 
 # Check if images are loaded correctly
-print(f"Loaded {len(images)} images with labels {len(labels)}")
+print(f"{Fore.GREEN}Loaded {len(images)} images with labels {len(labels)}{Style.RESET_ALL}")
 
 # Extract HOG features
 def extract_hog_features(images):
     hog_features = []
     for img in images:
-        print(f"Processing HOG for image with shape: {img.shape}")  # Debugging line
+        print(f"{Fore.CYAN}Processing HOG for image with shape: {img.shape}{Style.RESET_ALL}")  # Debugging line
         fd = hog(img, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualize=False, channel_axis=None)
         hog_features.append(fd)
+        # Simple text-based animation
+        print(f"{Fore.CYAN}Processing HOG feature...{Style.RESET_ALL}", end='\r')
+        time.sleep(0.1)
     return np.array(hog_features)
 
 features = extract_hog_features(images)
@@ -60,7 +67,9 @@ X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=
 
 # Train a classifier
 clf = LinearSVC()
+print(f"{Fore.CYAN}Training the classifier...{Style.RESET_ALL}")
 clf.fit(X_train, y_train)
+print(f"{Fore.GREEN}Training complete!{Style.RESET_ALL}")
 
 # Evaluate the classifier
 y_pred = clf.predict(X_test)
@@ -69,13 +78,14 @@ precision = precision_score(y_test, y_pred, average='weighted')
 recall = recall_score(y_test, y_pred, average='weighted')
 f1 = f1_score(y_test, y_pred, average='weighted')
 
-print(f"Accuracy: {accuracy * 100:.2f}%")
-print(f"Precision: {precision:.2f}")
-print(f"Recall: {recall:.2f}")
-print(f"F1 Score: {f1:.2f}")
+print(f"{Fore.GREEN}Accuracy: {accuracy * 100:.2f}%{Style.RESET_ALL}")
+print(f"{Fore.YELLOW}Precision: {precision:.2f}{Style.RESET_ALL}")
+print(f"{Fore.YELLOW}Recall: {recall:.2f}{Style.RESET_ALL}")
+print(f"{Fore.YELLOW}F1 Score: {f1:.2f}{Style.RESET_ALL}")
 
 # Save the trained model
 joblib.dump(clf, 'hog_svm_model.pkl')
+print(f"{Fore.GREEN}Model saved as 'hog_svm_model.pkl'{Style.RESET_ALL}")
 
 # Plot and save confusion matrix
 cm = confusion_matrix(y_test, y_pred)
