@@ -1,27 +1,41 @@
+from flask import Flask, request, jsonify
 import cv2
+import joblib
 import numpy as np
 from skimage.feature import hog
-from skimage import exposure
-import matplotlib.pyplot as plt
+from flask_cors import CORS
 
-# Load an image
-image = cv2.imread('/test.jpeg', cv2.IMREAD_GRAYSCALE)
+app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
-# Compute HOG features and visualization
-fd, hog_image = hog(image, orientations=9, pixels_per_cell=(8, 8),
-                    cells_per_block=(2, 2), visualize=True, multichannel=False)
+model = joblib.load('hog_svm_model.pkl')
 
-# Rescale the HOG image for better display
-hog_image_rescaled = exposure.rescale_intensity(hog_image, in_range=(0, 10))
+def extract_hog_feature(image):
+    fd, _ = hog(
+                image, orientations=9,
+                pixels_per_cell=(8, 8), 
+                cells_per_block=(2, 2), 
+                visualize=False,
+                multichannel=False
+            )
+    return fd
 
-# Plot the original image and the HOG image
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharex=True, sharey=True)
+@app.route('/predict', methods=['POST'])
+def predict():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_GRAYSCALE)
+    img = cv2.resize(img, (64, 128))
+    feature = extract_hog_feature(img).reshape(1, -1)
+    prediction = model.predict(feature)
+    label = 'Dog' if prediction[0] == 1 else 'Cat'
+    
+    return jsonify(result=label)
 
-ax1.axis('off')
-ax1.imshow(image, cmap=plt.cm.gray)
-ax1.set_title('Input Image')
-
-ax2.axis('off')
-ax2.imshow(hog_image_rescaled, cmap=plt.cm.gray)
-ax2.set_title('Histogram of Oriented Gradients')
-plt.show()
+if __name__ == '__main__':
+    app.run(debug=True)
