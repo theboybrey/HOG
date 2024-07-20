@@ -11,13 +11,7 @@ CORS(app)  # Enable CORS for all routes
 model = joblib.load('hog_svm_model.pkl')
 
 def extract_hog_feature(image):
-    fd, _ = hog(
-                image, orientations=9,
-                pixels_per_cell=(8, 8), 
-                cells_per_block=(2, 2), 
-                visualize=False,
-                multichannel=False
-            )
+    fd, _ = hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualize=False, multichannel=False)
     return fd
 
 @app.route('/predict', methods=['POST'])
